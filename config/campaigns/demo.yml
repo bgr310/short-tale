@@ -1,0 +1,50 @@
+# ===========================================================================
+# demo — offline smoke test campaign.
+#
+# `shorttale run --campaign demo --dry-run` uses bundled fixture posts, a
+# canned script, no network, and no GPU. It renders a real MP4 so you can
+# confirm the whole render path works before touching credentials.
+# ===========================================================================
+name: demo
+enabled: true
+description: Offline fixture campaign used by `make dry` and the test suite.
+
+topic:
+  description: Placeholder topic for the offline smoke test.
+  keywords: [spam email]
+  min_relevance: 0
+
+product:
+  name: ExampleProduct
+  url: example.com
+  one_liner: A placeholder product used only by the offline demo.
+  value_props: [does the thing]
+  claims_allowed: [does the thing]
+  claims_forbidden: [does anything else]
+  cta: "example.com"
+  plug_intensity: soft
+
+sources:
+  reddit:
+    enabled: true
+    subreddits: [example]
+    queries: ["example"]
+  rss:
+    enabled: false
+
+style:
+  format: reddit_card
+  duration:
+    min_seconds: 10
+    target_seconds: 32
+    max_seconds: 45
+  background:
+    mode: generated
+    preset: aurora_drift
+  captions:
+    enabled: true
+
+publish:
+  mode: review
+  platforms: [youtube]
+  schedule: ""

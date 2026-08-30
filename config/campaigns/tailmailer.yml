@@ -1,0 +1,184 @@
+# ===========================================================================
+# Tailmailer — email masking / anti-spam
+#
+# This file IS committed to the repo. It must never contain credentials.
+# Reddit app keys go in .env. See docs/SECURITY.md.
+# ===========================================================================
+name: tailmailer
+enabled: true
+description: >
+  Finds real people venting about spam email, inbox rot, and getting their
+  address sold after a signup — then turns the best one into a Short that
+  lands Tailmailer as the obvious fix.
+
+# ---------------------------------------------------------------------------
+# What we're hunting for
+# ---------------------------------------------------------------------------
+topic:
+  description: >
+    People frustrated by spam email: junk after signing up for something,
+    their address being sold or leaked in a breach, unsubscribe links that
+    do nothing, marketing lists they never joined, and the general misery of
+    an inbox they have lost control of. Prefer specific, concrete, human
+    stories over generic advice threads.
+  keywords:
+    - spam email
+    - so much spam
+    - email spam
+    - junk email
+    - marketing emails
+    - unsubscribe
+    - sold my email
+    - email got leaked
+    - data breach email
+    - burner email
+    - email alias
+    - throwaway email
+    - promotional emails
+    - inbox is a disaster
+    - how did they get my email
+  exclude_keywords:
+    # Keep us out of adjacent-but-wrong territory.
+    - spam musubi
+    - spam recipe
+    - email marketing tips     # people trying to SEND bulk email
+    - cold email
+    - deliverability
+    - smtp relay
+    - phishing simulation
+  min_relevance: 65
+
+# ---------------------------------------------------------------------------
+# Where to look
+# ---------------------------------------------------------------------------
+sources:
+  reddit:
+    enabled: true
+    subreddits:
+      - privacy
+      - PrivacyGuides
+      - degoogle
+      - gmail
+      - email
+      - Scams
+      - identitytheft
+      - techsupport
+      - mildlyinfuriating
+      - assholedesign
+      - YouShouldKnow
+      - LifeProTips
+      - NoStupidQuestions
+    queries:
+      - "spam email after signing up"
+      - "how did they get my email"
+      - "so much spam in my inbox"
+      - "unsubscribe doesn't work"
+      - "my email was sold"
+      - "email alias burner"
+      - "data breach my email"
+      - "drowning in marketing emails"
+    time_filter: year
+    sort: relevance
+    min_score: 25
+    min_comments: 5
+    max_per_query: 25
+    max_candidates: 80
+    include_top_comments: 3
+    allow_nsfw: false
+
+  rss:
+    # Podcast and blog feeds that regularly cover privacy/inbox hygiene.
+    # Audio transcription is off by default — turn it on and the pipeline will
+    # Whisper the episodes to find relevant moments. It is slow.
+    enabled: false
+    feeds:
+      - https://feeds.megaphone.fm/darknetdiaries
+      - https://www.eff.org/rss/updates.xml
+    max_items_per_feed: 20
+    transcribe_audio: false
+    max_transcribe_minutes: 20
+
+# ---------------------------------------------------------------------------
+# The product, and the guardrails on how it gets mentioned
+# ---------------------------------------------------------------------------
+product:
+  name: Tailmailer
+  url: tailmailer.com
+  one_liner: >
+    An email proxy that gives you a unique masked address for every signup,
+    so the spam never reaches your real inbox.
+  value_props:
+    - Every signup gets its own disposable-looking address that still forwards to you
+    - If an address starts getting spam, you know exactly which company leaked it
+    - Kill a single address without changing your real email anywhere else
+    - Your real address never touches the signup form
+  # The model may only make claims from this list. Anything else is a
+  # hallucination risk and gets caught by the post-generation checker.
+  claims_allowed:
+    - masks your real email address behind a unique forwarding alias
+    - lets you disable an individual alias at any time
+    - shows you which signup leaked your address
+    - forwards legitimate mail to your normal inbox
+  claims_forbidden:
+    - free forever
+    - blocks 100% of spam
+    - removes your data from broker databases
+    - deletes existing spam
+    - encrypts your email end to end
+    - is endorsed by or affiliated with any company mentioned in the video
+    - any specific pricing
+    - any specific user or customer numbers
+  cta: "Tailmailer.com — a different address for every signup."
+  plug_intensity: soft
+
+# ---------------------------------------------------------------------------
+# How the video looks and sounds
+# ---------------------------------------------------------------------------
+style:
+  format: reddit_card
+  tone: >
+    Conversational and a little wry. Sound like a person who has been burned
+    by this too, not like an ad. Never smug, never scold the person in the
+    post, never use hype words like "game changer" or "insane".
+  duration:
+    min_seconds: 24
+    target_seconds: 38
+    max_seconds: 55
+  voice: af_heart
+  speaking_rate: 1.05
+  show_source_card: true
+  end_card_seconds: 3.0
+  background:
+    mode: generated_first
+    preset: aurora_drift
+    colors: ["#0b1020", "#1b2a5e", "#3d7dff"]
+    library_tags: [calm, abstract, satisfying]
+    motion: slow
+  captions:
+    enabled: true
+    style: karaoke
+    font_size: 84
+    primary_color: "#FFFFFF"
+    highlight_color: "#3D7DFF"
+    outline_color: "#000000"
+    outline_width: 6
+    position: 0.62
+    max_words_per_line: 3
+    uppercase: false
+
+# ---------------------------------------------------------------------------
+# Publishing
+# ---------------------------------------------------------------------------
+publish:
+  mode: review          # nothing goes out until you click Approve
+  platforms: [youtube]
+  visibility: public
+  title_max_chars: 90
+  hashtags: ["#shorts", "#privacy", "#spam", "#email"]
+  description_footer: |
+
+    Source post is linked in the top comment.
+    Tailmailer.com — a different address for every signup.
+  made_for_kids: false
+  schedule: ""          # e.g. "0 9,17 * * *" for 9am and 5pm daily
+  max_per_day: 2

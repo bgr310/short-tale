@@ -1,0 +1,21 @@
+{
+  "hook": "One newsletter signup, and two weeks later the inbox was gone.",
+  "beats": [
+    {
+      "text": "They used their real address once, for a discount code. Then mail started arriving from companies they had never heard of.",
+      "visual": "source_card"
+    },
+    {
+      "text": "Unsubscribing did nothing. The same senders just came back under slightly different names, and there was no way to tell who had sold it.",
+      "visual": "source_card"
+    },
+    {
+      "text": "The fix is boring and it works. Give every signup its own address, so a leak stays in one place instead of spreading to everything.",
+      "visual": "none"
+    }
+  ],
+  "cta": "ExampleProduct, at example.com.",
+  "title": "One signup ruined this inbox in two weeks",
+  "description": "A demo render produced entirely offline from bundled fixture data. No network, no GPU, no credentials.",
+  "tags": ["demo", "offline", "shorttale"]
+}

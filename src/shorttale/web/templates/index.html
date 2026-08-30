@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block subtitle %}local shorts pipeline · nothing publishes without your approval{% endblock %}
+
+{% block content %}
+
+<h2>Campaigns</h2>
+<div class="grid cards">
+  {% for name, c in campaigns.items() %}
+  <div class="panel">
+    <div class="row" style="justify-content:space-between">
+      <strong>{{ c.name }}</strong>
+      <span class="badge {{ 's-published' if c.enabled else 's-rejected' }}">
+        {{ 'enabled' if c.enabled else 'off' }}</span>
+    </div>
+    <p class="muted" style="font-size:13px;margin:10px 0 14px">
+      {{ c.description[:160] or c.topic.description[:160] }}
+    </p>
+    <div class="muted mono" style="font-size:11.5px;margin-bottom:14px">
+      {{ c.publish.mode }} · {{ c.style.format }} ·
+      {{ c.style.duration.target_seconds|int }}s ·
+      {% if c.publish.schedule %}{{ c.publish.schedule }}{% else %}manual{% endif %}
+    </div>
+    <button class="btn primary" onclick="generate('{{ c.name }}')">Generate one now</button>
+  </div>
+  {% else %}
+  <div class="panel empty">
+    No campaigns loaded. Add a YAML file to <span class="mono">config/campaigns/</span>.
+  </div>
+  {% endfor %}
+</div>
+
+{% if pending %}
+<h2>Waiting for you ({{ pending|length }})</h2>
+<div class="grid cards">
+  {% for j in pending %}
+  <a class="panel" href="/job/{{ j.id }}" style="color:inherit;display:block">
+    <img src="/media/thumb/{{ j.id }}" alt="" style="width:100%;border-radius:8px;
+      background:#000;aspect-ratio:9/16;object-fit:cover;margin-bottom:12px">
+    <strong style="font-size:14px;display:block;margin-bottom:6px">{{ j.title or 'untitled' }}</strong>
+    <span class="muted mono" style="font-size:11.5px">
+      #{{ j.id }} · {{ j.campaign }} · {{ '%.0f'|format(j.duration or 0) }}s
+    </span>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2>Recent jobs</h2>
+<div class="panel" style="padding:18px 8px 8px">
+<table>
+  <thead><tr>
+    <th style="width:52px">#</th><th>Title</th><th style="width:110px">Campaign</th>
+    <th style="width:130px">Status</th><th style="width:110px">Stage</th><th style="width:60px"></th>
+  </tr></thead>
+  <tbody id="jobs">
+  {% for j in jobs %}
+    <tr data-id="{{ j.id }}">
+      <td class="mono muted">{{ j.id }}</td>
+      <td class="title-cell">{{ j.title or j.source_title or '—' }}</td>
+      <td class="muted">{{ j.campaign }}</td>
+      <td><span class="badge s-{{ j.status }}">{{ j.status.replace('_',' ') }}</span></td>
+      <td>
+        <div class="row" style="gap:8px">
+          <span class="muted mono" style="font-size:11.5px">{{ j.stage }}</span>
+          <span class="bar"><span style="width:{{ (j.progress*100)|int }}%"></span></span>
+        </div>
+      </td>
+      <td><a href="/job/{{ j.id }}">open</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="empty">
+      Nothing yet. Pick a campaign above and generate one.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generate(name){
+  try{
+    const r = await api('POST','/api/jobs',{campaign:name});
+    toast('queued job #' + r.id);
+    setTimeout(()=>location.reload(), 900);
+  }catch(e){ toast('could not queue: ' + e.message, 4200); }
+}
+// Poll while anything is moving, so progress bars advance on their own.
+setInterval(async ()=>{
+  const live = document.querySelectorAll('.s-running,.s-queued,.s-publishing,.s-approved');
+  if(!live.length) return;
+  try{
+    const jobs = await api('GET','/api/jobs?limit=60');
+    let changed = false;
+    for(const j of jobs){
+      const row = document.querySelector(`tr[data-id="${j.id}"]`);
+      if(!row) { changed = true; continue; }
+      const badge = row.querySelector('.badge');
+      if(!badge.className.includes('s-'+j.status)) changed = true;
+      badge.className = 'badge s-'+j.status;
+      badge.textContent = j.status.replace('_',' ');
+      row.querySelector('.mono[style]').textContent = j.stage;
+      row.querySelector('.bar span').style.width = Math.round(j.progress*100)+'%';
+    }
+    if(changed) location.reload();
+  }catch(e){}
+}, 4000);
+</script>
+{% endblock %}

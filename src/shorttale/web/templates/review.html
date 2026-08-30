@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}#{{ job.id }} · short-tale{% endblock %}
+{% block subtitle %}<a href="/">← all jobs</a> · job #{{ job.id }} · {{ job.campaign }}{% endblock %}
+
+{% block content %}
+
+{% if job.status == 'failed' %}
+<div class="note bad">
+  <strong>This job failed.</strong>
+  <pre style="margin-top:10px">{{ job.error }}</pre>
+</div>
+{% endif %}
+
+{% if job.review_notes %}
+<div class="note">
+  <strong>Worth a look before you approve</strong>
+  <ul>{% for line in job.review_notes.strip().split('\n') if line.strip() %}
+    <li>{{ line }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="review">
+  <div>
+    {% if job.video_path %}
+      <video controls preload="metadata" poster="/media/thumb/{{ job.id }}">
+        <source src="/media/video/{{ job.id }}" type="video/mp4">
+      </video>
+      <p class="muted mono" style="font-size:11.5px;margin-top:10px">
+        {{ '%.1f'|format(job.duration or 0) }}s · 1080×1920 ·
+        <span class="badge s-{{ job.status }}">{{ job.status.replace('_',' ') }}</span>
+      </p>
+    {% else %}
+      <div class="panel empty">No video rendered yet.<br>
+        <span class="mono">{{ job.stage }}</span> · {{ (job.progress*100)|int }}%</div>
+    {% endif %}
+
+    {% if job.source_url %}
+    <label>Source</label>
+    <a href="{{ job.source_url }}" target="_blank" rel="noopener noreferrer"
+       style="font-size:13.5px">{{ job.source_title or job.source_url }}</a>
+    <p class="muted mono" style="font-size:11.5px;margin-top:6px">
+      relevance {{ '%.0f'|format(job.relevance or 0) }}/100</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <label>Title <span class="counter" id="tc"></span></label>
+    <input type="text" id="title" value="{{ job.title or '' }}" maxlength="100">
+
+    <label>Description</label>
+    <textarea id="description">{{ job.description or '' }}</textarea>
+
+    <label>Tags <span class="counter muted">comma separated</span></label>
+    <input type="text" id="tags" value="{{ (job.tags or [])|join(', ') }}">
+
+    <div class="row" style="margin-top:22px">
+      {% if job.status == 'awaiting_review' %}
+        <button class="btn primary" onclick="approve()">Approve &amp; publish</button>
+        <button class="btn" onclick="save()">Save changes</button>
+        <button class="btn danger" onclick="reject()">Reject</button>
+      {% elif job.status in ['failed','rejected'] %}
+        <button class="btn primary" onclick="retry()">Try another post</button>
+      {% elif job.status == 'published' %}
+        <span class="badge s-published">published</span>
+        {% if job.publish_result and job.publish_result.url %}
+          <a href="{{ job.publish_result.url }}" target="_blank" rel="noopener">open on YouTube →</a>
+        {% endif %}
+      {% else %}
+        <span class="muted">Nothing to do while this job is {{ job.status.replace('_',' ') }}.</span>
+      {% endif %}
+    </div>
+
+    {% if job.script %}
+    <label style="margin-top:28px">Script</label>
+    <div class="panel">
+      <div class="beat"><div class="cue">hook</div>{{ job.script.hook }}</div>
+      {% for b in job.script.beats %}
+        <div class="beat"><div class="cue">{{ b.visual }}</div>{{ b.text }}</div>
+      {% endfor %}
+      <div class="beat"><div class="cue">cta</div>{{ job.script.cta }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const JOB = {{ job.id }};
+const MAX_TITLE = 100;
+
+const titleEl = document.getElementById('title');
+function count(){
+  const n = titleEl.value.length, el = document.getElementById('tc');
+  el.textContent = n + '/' + MAX_TITLE;
+  el.classList.toggle('over', n > MAX_TITLE);
+}
+titleEl.addEventListener('input', count); count();
+
+function payload(){
+  return {
+    title: titleEl.value,
+    description: document.getElementById('description').value,
+    tags: document.getElementById('tags').value.split(',').map(s=>s.trim()).filter(Boolean)
+  };
+}
+async function save(){
+  try{ await api('PATCH','/api/jobs/'+JOB, payload()); toast('saved'); }
+  catch(e){ toast('save failed: '+e.message, 4200); }
+}
+async function approve(){
+  if(!confirm('Approve and publish this to YouTube?')) return;
+  try{
+    await api('PATCH','/api/jobs/'+JOB, payload());
+    await api('POST','/api/jobs/'+JOB+'/approve');
+    toast('approved — the worker will upload it shortly');
+    setTimeout(()=>location.reload(), 1200);
+  }catch(e){ toast('approve failed: '+e.message, 4600); }
+}
+async function reject(){
+  const why = prompt('Reason (optional):') || '';
+  try{
+    await api('POST','/api/jobs/'+JOB+'/reject?reason='+encodeURIComponent(why));
+    location.reload();
+  }catch(e){ toast('reject failed: '+e.message, 4200); }
+}
+async function retry(){
+  try{
+    const r = await api('POST','/api/jobs/'+JOB+'/retry');
+    location.href = '/job/' + r.id;
+  }catch(e){ toast('retry failed: '+e.message, 4200); }
+}
+</script>
+{% endblock %}

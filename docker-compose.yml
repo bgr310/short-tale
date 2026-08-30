@@ -1,0 +1,155 @@
+# ---------------------------------------------------------------------------
+# short-tale — fully local Shorts/TikTok generator
+#
+#   docker compose up -d
+#   open http://localhost:8080
+#
+# Everything runs on your machine. The only outbound traffic is to the content
+# sources you configure (Reddit, RSS feeds) and, once, to download model
+# weights. No inference ever leaves this box.
+# ---------------------------------------------------------------------------
+
+x-gpu: &gpu
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            # "video" is what exposes NVENC to ffmpeg. Without it you silently
+            # fall back to CPU encoding, which is slow on an older CPU.
+            capabilities: [gpu, compute, utility, video]
+  environment:
+    NVIDIA_VISIBLE_DEVICES: all
+    NVIDIA_DRIVER_CAPABILITIES: all
+
+x-app-env: &app-env
+  OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
+  OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:14b-instruct-q4_K_M}
+  OLLAMA_MODEL_FAST: ${OLLAMA_MODEL_FAST:-qwen2.5:7b-instruct-q4_K_M}
+  REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
+  REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
+  REDDIT_USER_AGENT: ${REDDIT_USER_AGENT:-short-tale/0.1}
+  PEXELS_API_KEY: ${PEXELS_API_KEY:-}
+  TTS_ENGINE: ${TTS_ENGINE:-auto}
+  TTS_VOICE: ${TTS_VOICE:-af_heart}
+  WHISPER_MODEL: ${WHISPER_MODEL:-base.en}
+  WHISPER_DEVICE: ${WHISPER_DEVICE:-auto}
+  VIDEO_ENCODER: ${VIDEO_ENCODER:-auto}
+  VIDEO_FPS: ${VIDEO_FPS:-30}
+  APP_TOKEN: ${APP_TOKEN:-}
+  PUBLISHER_URL: http://publisher:8090
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  TZ: ${TZ:-UTC}
+
+services:
+  # --- Local LLM -----------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: shorttale-ollama
+    restart: unless-stopped
+    <<: *gpu
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+      # Unload the model between pipeline stages so Whisper can have the VRAM.
+      # On 12GB this is what keeps a 14B model and Whisper from colliding.
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-60s}
+      OLLAMA_MAX_LOADED_MODELS: 1
+    # Not published to the host by default — only the app talks to it.
+    expose:
+      - "11434"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # --- Review UI + scheduler ----------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    image: shorttale/app:latest
+    container_name: shorttale-api
+    restart: unless-stopped
+    command: ["shorttale", "serve"]
+    environment:
+      <<: *app-env
+    volumes:
+      - ./config:/app/config:ro
+      - ./assets:/app/assets:ro
+      - ./data:/app/data
+      - ./out:/app/out
+      - models_cache:/app/models
+    ports:
+      # Binds to loopback by default. Change APP_BIND to 0.0.0.0 to expose
+      # on your LAN — and set APP_TOKEN if you do.
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:8080"
+    depends_on:
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request;urllib.request.urlopen('http://localhost:8080/healthz')\" || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # --- Pipeline worker (GPU: Whisper + NVENC) ------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    image: shorttale/app:latest
+    container_name: shorttale-worker
+    restart: unless-stopped
+    command: ["shorttale", "work"]
+    <<: *gpu
+    environment:
+      <<: *app-env
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+    volumes:
+      - ./config:/app/config:ro
+      - ./assets:/app/assets:ro
+      - ./data:/app/data
+      - ./out:/app/out
+      - models_cache:/app/models
+    depends_on:
+      ollama:
+        condition: service_started
+
+  # --- Browser publisher (no GPU, holds the login profile) -----------------
+  publisher:
+    build:
+      context: .
+      dockerfile: docker/publisher/Dockerfile
+    image: shorttale/publisher:latest
+    container_name: shorttale-publisher
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-UTC}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DISPLAY: ":99"
+      PUBLISH_ENABLED: ${PUBLISH_ENABLED:-true}
+    volumes:
+      - ./out:/app/out:ro
+      - ./data:/app/data
+      # The browser profile holds live YouTube session cookies.
+      # It is a named volume so it can never be swept into a git commit.
+      - publisher_profile:/profile
+    ports:
+      # noVNC — open this once to sign in to YouTube by hand.
+      - "127.0.0.1:${NOVNC_PORT:-7900}:7900"
+    expose:
+      - "8090"
+    shm_size: "1gb"
+
+volumes:
+  ollama_models:
+  publisher_profile:
+  models_cache:

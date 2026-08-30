@@ -1,0 +1,33 @@
+[
+  {
+    "kind": "reddit",
+    "external_id": "demo0001",
+    "url": "https://example.invalid/demo/post1",
+    "title": "Signed up for one newsletter and now I get forty emails a day",
+    "body": "I used my real address to grab a discount code back in March. Within about two weeks I was getting mail from companies I have never heard of. Unsubscribing does nothing, half of them just come back under a slightly different name. I have no idea which one of them sold it.",
+    "author": "demo_user",
+    "origin": "r/example",
+    "score": 4820,
+    "num_comments": 312,
+    "created_utc": 1750000000.0,
+    "top_comments": [
+      "The unsubscribe link is how they confirm the address is live. Never click it.",
+      "This is why I use a different address for every single signup now."
+    ],
+    "extra": {"angle": "the moment one signup poisoned the whole inbox"}
+  },
+  {
+    "kind": "reddit",
+    "external_id": "demo0002",
+    "url": "https://example.invalid/demo/post2",
+    "title": "My inbox has become completely unusable and I cannot find real mail anymore",
+    "body": "I missed a message about a job interview because it was buried under promotional mail. Filters help for about a week and then everything shifts again.",
+    "author": "demo_user_two",
+    "origin": "r/example",
+    "score": 1290,
+    "num_comments": 88,
+    "created_utc": 1752000000.0,
+    "top_comments": ["Aliases fixed this for me overnight."],
+    "extra": {"angle": "the real cost is the mail you miss"}
+  }
+]

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}short-tale{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><a href="/" style="color:inherit">short<span class="dot">·</span>tale</a></h1>
+    <span class="sub">{% block subtitle %}{% endblock %}</span>
+  </header>
+  {% block content %}{% endblock %}
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const TOKEN_REQUIRED = {{ 'true' if token_required else 'false' }};
+function token(){
+  if(!TOKEN_REQUIRED) return '';
+  let t = localStorage.getItem('shorttale_token');
+  if(!t){ t = prompt('APP_TOKEN (set in your .env):') || ''; localStorage.setItem('shorttale_token', t); }
+  return t;
+}
+async function api(method, url, body){
+  const headers = {'Content-Type':'application/json'};
+  if(TOKEN_REQUIRED) headers['X-App-Token'] = token();
+  const r = await fetch(url, {method, headers, body: body ? JSON.stringify(body) : undefined});
+  const data = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+function toast(msg, ms=2600){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), ms);
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

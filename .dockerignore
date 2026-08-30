@@ -1,0 +1,16 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+data/
+models/
+out/
+work/
+profiles/
+assets/broll/*
+node_modules
+.env
+.env.*
+!.env.example
+tests/__pycache__

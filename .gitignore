@@ -1,0 +1,71 @@
+# ---------------------------------------------------------------------------
+# SECRETS — never commit anything below. See docs/SECURITY.md
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+config/settings.yml
+config/settings.local.yml
+
+# Browser profiles contain live login cookies for YouTube/TikTok.
+# Committing one is equivalent to publishing your password.
+profiles/
+publisher_profile/
+*/Default/Cookies*
+*.cookies
+cookies.json
+state.json
+
+# ---------------------------------------------------------------------------
+# Runtime data, models, and generated media
+# ---------------------------------------------------------------------------
+data/
+!data/.gitkeep
+models/
+out/
+work/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Generated media
+*.mp4
+*.mkv
+*.webm
+*.wav
+*.mp3
+*.m4a
+# ...but keep tiny fixtures used by tests
+!tests/fixtures/**/*.wav
+!tests/fixtures/**/*.mp4
+
+# User-supplied b-roll and brand assets (can be large / licensed)
+assets/broll/*
+!assets/broll/README.md
+assets/fonts/*
+!assets/fonts/README.md
+assets/brand/*
+!assets/brand/README.md
+
+# ---------------------------------------------------------------------------
+# Python / Node / OS
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+node_modules/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

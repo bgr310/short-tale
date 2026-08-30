@@ -1,0 +1,28 @@
+title = "short-tale secret scanning"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "reddit-client-secret"
+description = "Reddit app client secret"
+regex = '''(?i)reddit_client_secret\s*[:=]\s*['"]?[A-Za-z0-9_\-]{20,}'''
+tags = ["reddit", "secret"]
+
+[[rules]]
+id = "browser-cookie-blob"
+description = "Serialised browser storage state (login cookies)"
+regex = '''"cookies"\s*:\s*\[\s*\{[^}]*"name"'''
+tags = ["cookies", "session"]
+
+[allowlist]
+description = "Placeholders and docs"
+paths = [
+  '''\.env\.example$''',
+  '''docs/.*\.md$''',
+  '''README\.md$''',
+]
+regexes = [
+  '''your_reddit_username''',
+  '''CHANGE_ME''',
+]

@@ -1,0 +1,37 @@
+# --- web / app -------------------------------------------------------------
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+jinja2==3.1.5
+python-multipart==0.0.20
+sqlalchemy==2.0.36
+apscheduler==3.11.0
+
+# --- config / io -----------------------------------------------------------
+pydantic==2.10.5
+pydantic-settings==2.7.1
+PyYAML==6.0.2
+httpx==0.28.1
+tenacity==9.0.0
+python-slugify==8.0.4
+rich==13.9.4
+
+# --- content sources -------------------------------------------------------
+praw==7.8.1
+feedparser==6.0.11
+
+# --- media -----------------------------------------------------------------
+Pillow==11.1.0
+numpy==1.26.4
+soundfile==0.13.0
+
+# --- speech ----------------------------------------------------------------
+# Caption timing. Uses CUDA+cuDNN when available, CPU int8 otherwise.
+faster-whisper==1.1.1
+# Kokoro runs on CPU by design: it keeps the 12GB of VRAM free for the LLM
+# and Whisper, and removes a whole class of onnxruntime/CUDA version pain.
+# It is small (82M) and comfortably faster than realtime even on old CPUs.
+kokoro-onnx==0.4.9
+onnxruntime==1.20.1
+
+# --- test ------------------------------------------------------------------
+pytest==8.3.4
